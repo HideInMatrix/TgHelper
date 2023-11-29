@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  my_service:
+    image: davidkms/jdxb:0.0.2
+    container_name: jdxb
+    volumes:
+      - ./:/app/
+#    environment:
+#      - HTTP_PROXY=http://host.docker.internal:8889
+#      - HTTPS_PROXY=http://host.docker.internal:8889
+

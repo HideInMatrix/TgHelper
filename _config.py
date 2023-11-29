@@ -1,0 +1,13 @@
+API_ID = 0  # tg 申请的app_id https://my.telegram.org/apps
+API_HASH = "xxxxx"  # tg 申请的app_hash
+BOT_TOKEN = "1234:xxxxx"  # 创建的tg机器人的token
+GROUP_CHAT_ID = -123  # 监听的tg群 你的群
+QL_URL = "https://xx.com"  # 青龙地址
+CLIENT_ID = "xx"  # QL 设置里的CLIENT_ID
+CLIENT_SECRET = "xx"  # 同上
+ENABLE_PROXY = False  # 开启代理的标志
+PROXY_SCHEME = "http"
+PROXY_HOSTNAME = "127.0.0.1"
+PROXY_PORT = 8889
+NEED_NOTIFY = True  # 是否开启通知你
+USER_ID = '1234'
