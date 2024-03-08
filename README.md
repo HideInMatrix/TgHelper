@@ -20,3 +20,4 @@ touch /ql/data/config/qlva.sh
 
 ## 配合PagerMaid-Proy使用
 直接把pagermaid_plugin_jdxb.py丢入到PagerMaid-Proy文件夹中的plugins下面然后重启。依旧是要按上面操作创建青龙配置文件
+然后在Telegram上发送信息，唤起你的机器人，可以参考PagerMaid-Proy的设置方式，里面有提示需要设置哪些参数
