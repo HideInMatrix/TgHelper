@@ -1,4 +1,5 @@
 ## 单独使用
+
 本项目深度适配faker3的TG线报脚本，在_config.py那里配置你的TG信息,然后改名成config.py
 然后执行`docker build -t davidkms/jdxb:0.0.2 .`
 之后再运行`docker compose up -d`
