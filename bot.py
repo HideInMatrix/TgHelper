@@ -281,7 +281,7 @@ def main():
                 run_crons(token,ids)
 
                 # if need_notify:
-                    # await app.send_message(chat_id=user_id, text=f'监听到线报参数\n{",".join(_send_msg['title'])}\n开始自动执行任务')
+                    # await app.send_message(chat_id=user_id, text=f'监听到线报参数\n{",".join(_send_msg.title)}\n开始自动执行任务')
 
     try:
         app.run(run_success())
