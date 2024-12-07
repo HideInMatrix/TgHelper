@@ -55,6 +55,36 @@ def extract_key_value(text):
     return result
 
 
+def extract_key_value_with_title(text):
+    """
+    分解抛出的变量和值，同时解析标题，去除图标。
+    """
+    result = {}
+
+    # 修改标题的正则表达式，移除前导表情符号
+    title_pattern = r'[\u4e00-\u9fa5\w\s]+·'  # 匹配文字、数字和点号
+    title_match = re.search(title_pattern, text)
+    if title_match:
+        result['title'] = title_match.group(0).replace('·', '').strip()  # 去掉末尾的点号并去除多余空格
+
+    # 解析变量和值
+    pattern = r'export (\w+)=(".*?")'
+    matches = re.findall(pattern, text)
+    if matches:
+        result['variables'] = [{'key': key, 'value': value} for key, value in matches]
+    else:
+        result['variables'] = []
+
+    return result
+
+def search_corns_by_name(_name, _token=-1):
+     # 获取当前时间的时间戳
+    current_time = int(datetime.now().timestamp() * 1000)  # 转为毫秒级时间戳
+
+    resp = make_request('get', f'{ql_url}/open/crons', headers={'Authorization': f'Bearer {_token}'}, params={'searchValue': _name,},)
+    # logging.info(f'搜索结果{resp}')
+    return resp['data']['data'] 
+
 async def get_ql_toke():
     """获取青龙的token"""
     d = dict(sqlite)
@@ -225,7 +255,7 @@ async def shift_channel_message(bot: Client, message: Message):
         return
 
     msg = message.text
-    _send_msg = extract_key_value(msg)
+    _send_msg = extract_key_value_with_title(msg)
     if len(_send_msg) == 0:
         print("无关消息，无需处理")
         return
@@ -237,25 +267,22 @@ async def shift_channel_message(bot: Client, message: Message):
         results = await get_qlva_config(token)
 
         for result in results:
-            if _send_msg[0]['key'] == result['key']:
-                result['value'] = _send_msg[0]['value']
+            if _send_msg['variables'][0]['key'] == result['key']:
+                result['value'] = _send_msg['variables'][0]['value']
 
                 flag = True
         if not flag:
-            results.append(_send_msg[0])
+            results.append(_send_msg['variables'][0])
         update_str = ''
         for result in results:
             update_str += f'export {result["key"]}={result["value"]}\n'
         await update_qlva_config(token, update_str)
 
-        crons = await get_corns(token)
-        _resp = await make_request('get',
-                                   "https://raw.githubusercontent.com/shufflewzc/AutoSpy/master/config/Faker.spy",
-                                   isFile=True)
-        _values = parse_config(_resp)
-        scipy_names = await match_script_id(_values, _send_msg, crons, token)
+        crons = search_corns_by_name(_name=_send_msg['title'], _token=token)
+        ids = [cron['id'] for cron in crons]
+        run_crons(token,ids)
 
         if d.get("jdxb.user_id"):
-            await bot.send_message(d.get(f"jdxb.user_id"), f'监听到线报参数\n{",".join(scipy_names)}\n开始自动执行任务')
+            await bot.send_message(d.get(f"jdxb.user_id"), f'监听到线报参数\n{",".join(_send_msg['title'])}\n开始自动执行任务')
 
 
