@@ -5,6 +5,7 @@ from pyrogram.types import Message
 import re
 import logging
 import config
+from datetime import datetime
 
 # 配置日志记录
 logging.basicConfig(filename='app.log', filemode='w', format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -58,6 +59,28 @@ def extract_key_value(text):
         for match in matches:
             key, value = match
             result.append({'key': key, 'value': value})
+    return result
+
+def extract_key_value_with_title(text):
+    """
+    分解抛出的变量和值，同时解析标题，去除图标。
+    """
+    result = {}
+
+    # 修改标题的正则表达式，移除前导表情符号
+    title_pattern = r'[\u4e00-\u9fa5\w\s]+·'  # 匹配文字、数字和点号
+    title_match = re.search(title_pattern, text)
+    if title_match:
+        result['title'] = title_match.group(0).replace('·', '').strip()  # 去掉末尾的点号并去除多余空格
+
+    # 解析变量和值
+    pattern = r'export (\w+)=(".*?")'
+    matches = re.findall(pattern, text)
+    if matches:
+        result['variables'] = [{'key': key, 'value': value} for key, value in matches]
+    else:
+        result['variables'] = []
+
     return result
 
 
@@ -125,6 +148,19 @@ def get_corns(_token=-1):
     #     json.dump(data, file, indent=4)
     return resp['data']['data']
 
+# searchValue: 店铺抽奖
+# page: 1
+# size: 20
+# filters: {}
+# queryString: {"filters":null,"sorts":null,"filterRelation":"and"}
+# t: 1733450195718
+def search_corns_by_name(_name, _token=-1):
+     # 获取当前时间的时间戳
+    current_time = int(datetime.now().timestamp() * 1000)  # 转为毫秒级时间戳
+
+    resp = make_request('get', f'{ql_url}/open/crons', headers={'Authorization': f'Bearer {_token}'}, params={'searchValue': _name,},)
+    # logging.info(f'搜索结果{resp}')
+    return resp['data']['data'] 
 
 def run_crons(_token=-1, ids=None):
     if ids is None:
@@ -162,6 +198,7 @@ def match_script_id(_values, _send_msg, crons, token):
 
         run_crons(token, ids)
     return scipy_names
+    
 
 
 def run_success():
@@ -217,33 +254,34 @@ def main():
             flag = False
             if token != -1:
                 results = get_qlva_config(token)
-                _send_msg = extract_key_value(msg)
+                _send_msg = extract_key_value_with_title(msg)
 
                 if len(_send_msg) == 0:
                     logging.info("无关消息，无需处理")
                     return
 
                 for result in results:
-                    if _send_msg[0]['key'] == result['key']:
-                        result['value'] = _send_msg[0]['value']
+                    if _send_msg['variables'][0]['key'] == result['key']:
+                        result['value'] = _send_msg['variables'][0]['value']
 
                         flag = True
                 if not flag:
-                    results.append(_send_msg[0])
+                    results.append(_send_msg['variables'][0])
                 update_str = ''
                 for result in results:
                     update_str += f'export {result["key"]}={result["value"]}\n'
                 update_qlva_config(token, update_str)
 
-                crons = get_corns(token)
-                _resp = make_request('get',
-                                     "https://raw.githubusercontent.com/shufflewzc/AutoSpy/master/config/Faker.spy",
-                                     isFile=True)
-                _values = parse_config(_resp)
-                scipy_names = match_script_id(_values, _send_msg, crons, token)
+                crons = search_corns_by_name(_name=_send_msg['title'], _token=token)
 
-                if need_notify:
-                    await app.send_message(chat_id=user_id, text=f'监听到线报参数\n{",".join(scipy_names)}\n开始自动执行任务')
+                # scipy_names = match_script_id(_values, _send_msg, crons, token)
+                #  crons 得到这样的数组[{id:1,name:xxx}], 将crons的id组成一个数组
+                ids = [cron['id'] for cron in crons]
+                logging.info(f'ids要执行{ids}{crons}')
+                run_crons(token,ids)
+
+                # if need_notify:
+                    # await app.send_message(chat_id=user_id, text=f'监听到线报参数\n{",".join(_send_msg['title'])}\n开始自动执行任务')
 
     try:
         app.run(run_success())
