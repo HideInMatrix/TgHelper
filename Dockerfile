@@ -1,30 +1,42 @@
-FROM python:3.12.0
+
+FROM python:3.12.0-slim AS builder
+
 LABEL authors="davidmorgan"
-# 设置工作目录
+
+
 WORKDIR /app
 
-# 复制当前目录的所有文件到镜像的/app目录下
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY . /app
 
-# 安装依赖项
+
 RUN pip install --upgrade pip
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+COPY requirements.txt . 
+RUN pip install --no-cache-dir -r requirements.txt
 
-# 设置环境变量
+FROM python:3.12.0-slim
+
+LABEL authors="davidmorgan"
+
+
+WORKDIR /app
+
+
+COPY --from=builder /app /app
+
+
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+
+
 ENV PYTHONPATH "${PYTHONPATH}:/app"
-
-# 设置日志文件
-RUN touch app.log
-
-RUN chmod -R 777 /app
-
-# 安装时区数据
-RUN apt-get update && apt-get install -y \
-    gcc
-
-# 设置时区
 ENV TZ=Asia/Shanghai
 
-# 运行Python脚本
-CMD python bot.py
+
+RUN touch app.log && chmod -R 777 /app
+
+
+CMD ["python", "bot.py"]
